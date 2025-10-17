@@ -1,0 +1,27 @@
+[Unit]
+Description=DHCP Packet Forwarder Service
+Documentation=https://github.com/yourusername/linux-dhcp-forwarder
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/linux-dhcp-forwarder --config /etc/dhcp-forwarder/config.json
+Restart=always
+RestartSec=5
+
+# Security settings
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dhcp-forwarder
+
+[Install]
+WantedBy=multi-user.target
