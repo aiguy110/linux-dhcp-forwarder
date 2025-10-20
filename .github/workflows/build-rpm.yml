@@ -46,19 +46,24 @@ jobs:
           source $HOME/.cargo/env
           cargo build --release
 
-      - name: Create source tarball
+      - name: Create source tarball with pre-built binary
         run: |
           VERSION=${{ steps.version.outputs.VERSION }}
           tar czf ~/rpmbuild/SOURCES/linux-dhcp-forwarder-${VERSION}.tar.gz \
             --transform "s,^,linux-dhcp-forwarder-${VERSION}/," \
-            --exclude='target' \
             --exclude='.git' \
             --exclude='.github' \
-            Cargo.toml Cargo.lock src/ config.example.json linux-dhcp-forwarder.service README.md
+            Cargo.toml Cargo.lock src/ config.example.json linux-dhcp-forwarder.service README.md target/release/linux-dhcp-forwarder
 
-      - name: Copy spec file
+      - name: Create modified spec file for pre-built binary
         run: |
           cp linux-dhcp-forwarder.spec ~/rpmbuild/SPECS/
+          # Remove BuildRequires for rust and cargo since we pre-built
+          sed -i '/BuildRequires:.*rust/d' ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec
+          sed -i '/BuildRequires:.*cargo/d' ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec
+          # Replace the %build section to skip cargo build
+          sed -i '/%build/,/%install/{//!d}' ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec
+          sed -i '/%build/a # Binary pre-built in CI' ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec
 
       - name: Build RPM
         run: |
