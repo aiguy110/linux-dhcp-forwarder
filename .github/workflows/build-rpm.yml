@@ -3,7 +3,7 @@ name: Build RHEL 9 RPM
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,9 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
+          dnf install -y epel-release
           dnf install -y rpm-build gcc libpcap-devel tar gzip git
+          dnf config-manager --set-enabled crb
 
       - name: Install Rust toolchain
         run: |
