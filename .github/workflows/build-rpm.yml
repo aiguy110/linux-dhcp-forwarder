@@ -1,0 +1,87 @@
+name: Build RHEL 9 RPM
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-rpm:
+    name: Build RPM for RHEL 9
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y rpm-build gcc libpcap-devel tar gzip git
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          source $HOME/.cargo/env
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Create RPM build directory structure
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+      - name: Build Rust binary
+        run: |
+          source $HOME/.cargo/env
+          cargo build --release
+
+      - name: Create source tarball
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          tar czf ~/rpmbuild/SOURCES/linux-dhcp-forwarder-${VERSION}.tar.gz \
+            --transform "s,^,linux-dhcp-forwarder-${VERSION}/," \
+            --exclude='target' \
+            --exclude='.git' \
+            --exclude='.github' \
+            Cargo.toml Cargo.lock src/ config.example.json linux-dhcp-forwarder.service README.md
+
+      - name: Copy spec file
+        run: |
+          cp linux-dhcp-forwarder.spec ~/rpmbuild/SPECS/
+
+      - name: Build RPM
+        run: |
+          rpmbuild -ba ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec
+
+      - name: Find built RPM
+        id: find_rpm
+        run: |
+          RPM_PATH=$(find ~/rpmbuild/RPMS -name "*.rpm" -type f | head -1)
+          RPM_NAME=$(basename "$RPM_PATH")
+          echo "RPM_PATH=$RPM_PATH" >> $GITHUB_OUTPUT
+          echo "RPM_NAME=$RPM_NAME" >> $GITHUB_OUTPUT
+          echo "Built RPM: $RPM_PATH"
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-dhcp-forwarder-rpm-rhel9
+          path: ~/rpmbuild/RPMS/x86_64/*.rpm
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ~/rpmbuild/RPMS/x86_64/*.rpm
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
