@@ -86,8 +86,7 @@ jobs:
 
       - name: Create modified spec file for pre-built binary
         run: |
-          # Create a modified spec file that uses the pre-built binary
-          cat > ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec << 'EOF'
+          cat > ~/rpmbuild/SPECS/linux-dhcp-forwarder.spec << 'SPECFILE'
           Name:           linux-dhcp-forwarder
           Version:        0.1.0
           Release:        1%{?dist}
@@ -152,7 +151,7 @@ jobs:
           - DHCP packet capture using libpcap
           - Configurable remote forwarding to NAC or monitoring servers
           - Systemd service support
-          EOF
+          SPECFILE
 
       - name: Build RPM
         run: |
