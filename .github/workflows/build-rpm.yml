@@ -16,10 +16,39 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
-          dnf install -y dnf-plugins-core
-          dnf config-manager --set-enabled crb
-          dnf install -y epel-release
-          dnf install -y rpm-build gcc libpcap-devel tar gzip git
+          # Retry logic for dnf operations to handle transient network errors
+          retry_dnf() {
+            local max_attempts=3
+            local attempt=1
+            local delay=5
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts: $@"
+              if dnf "$@"; then
+                return 0
+              fi
+
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Command failed. Retrying in ${delay}s..."
+                sleep $delay
+                delay=$((delay * 2))
+              fi
+              attempt=$((attempt + 1))
+            done
+
+            echo "Command failed after $max_attempts attempts"
+            return 1
+          }
+
+          # Clean dnf cache and update metadata
+          dnf clean all
+          retry_dnf makecache
+
+          # Install packages with retry logic
+          retry_dnf install -y dnf-plugins-core
+          retry_dnf config-manager --set-enabled crb
+          retry_dnf install -y epel-release
+          retry_dnf install -y rpm-build gcc libpcap-devel tar gzip git
 
       - name: Install Rust toolchain
         run: |
