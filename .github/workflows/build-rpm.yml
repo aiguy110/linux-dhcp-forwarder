@@ -16,9 +16,10 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled crb
           dnf install -y epel-release
           dnf install -y rpm-build gcc libpcap-devel tar gzip git
-          dnf config-manager --set-enabled crb
 
       - name: Install Rust toolchain
         run: |
