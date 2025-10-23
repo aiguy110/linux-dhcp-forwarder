@@ -11,8 +11,10 @@ BuildRequires:  rust >= 1.70
 BuildRequires:  cargo
 BuildRequires:  libpcap-devel
 BuildRequires:  gcc
+BuildRequires:  systemd-rpm-macros
 
 Requires:       libpcap
+Requires:       systemd
 
 %description
 A one-way DHCP packet forwarder designed to run on DHCP servers. It uses

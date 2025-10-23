@@ -9,8 +9,10 @@ Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  libpcap-devel
 BuildRequires:  gcc
+BuildRequires:  systemd-rpm-macros
 
 Requires:       libpcap
+Requires:       systemd
 
 %description
 A one-way DHCP packet forwarder designed to run on DHCP servers. It uses
