@@ -50,14 +50,20 @@ jobs:
           retry_dnf install -y epel-release
           retry_dnf install -y rpm-build gcc libpcap-devel tar gzip git
 
+      - name: Configure git for container
+        run: |
+          git config --global --add safe.directory '*'
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install Rust toolchain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
           source $HOME/.cargo/env
+          rustc --version
+          cargo --version
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Extract version from Cargo.toml
         id: version
@@ -72,8 +78,10 @@ jobs:
 
       - name: Build Rust binary
         run: |
-          source $HOME/.cargo/env
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo --version
           cargo build --release
+          ls -lh target/release/linux-dhcp-forwarder
 
       - name: Create source tarball with pre-built binary
         run: |
